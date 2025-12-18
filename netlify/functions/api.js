@@ -124,11 +124,36 @@ function getRoute(event) {
   // Expected paths:
   // - /.netlify/functions/api/rates
   // - /.netlify/functions/api/reviews/123
-  const rawPath = (event.path || '').toString();
-  const prefix = '/.netlify/functions/api';
-  let p = rawPath.startsWith(prefix) ? rawPath.slice(prefix.length) : rawPath;
-  if (!p.startsWith('/')) p = `/${p}`;
-  return p;
+  // Also handle /api/rates from rawUrl or path
+  let rawPath = (event.rawUrl || event.path || '').toString();
+  
+  // Extract path from full URL if needed
+  try {
+    const url = new URL(rawPath, 'http://localhost');
+    rawPath = url.pathname;
+  } catch {
+    // keep rawPath as is
+  }
+  
+  // Remove /.netlify/functions/api prefix
+  const prefix1 = '/.netlify/functions/api';
+  if (rawPath.startsWith(prefix1)) {
+    rawPath = rawPath.slice(prefix1.length);
+  }
+  
+  // Remove /api prefix (from redirect)
+  const prefix2 = '/api';
+  if (rawPath.startsWith(prefix2)) {
+    rawPath = rawPath.slice(prefix2.length);
+  }
+  
+  // Ensure starts with /
+  if (!rawPath.startsWith('/')) rawPath = `/${rawPath}`;
+  
+  // Remove trailing slashes
+  rawPath = rawPath.replace(/\/+$/, '') || '/';
+  
+  return rawPath;
 }
 
 async function readJsonBody(event) {
